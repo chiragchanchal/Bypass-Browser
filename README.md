@@ -53,7 +53,7 @@ The browser has undergone security hardening to ensure privacy and isolation:
 ## Download & Installation
 
 ### Option 1: Pre-built Binary
-1. Go to the [Releases](https://github.com/ChiragChanchal/BypassBrowser/releases) page.
+1. Go to the [Releases](https://github.com/chiragchanchal/Bypass-Browser/releases) page.
 2. Download `BypassBrowser-Windows-x64.zip`.
 3. Extract the folder and double-click `BypassBrowser.exe` to run.
 

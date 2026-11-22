@@ -5,7 +5,7 @@ Author: Chirag Chanchal
 Email: chiragchanchal2345@gmail.com
 Copyright (c) 2026 Chirag Chanchal
 License: MIT License
-Repository: https://github.com/ChiragChanchal/BypassBrowser
+Repository: https://github.com/chiragchanchal/Bypass-Browser
 
 Features:
 - Instant ephemeral sessions with dedicated isolated temporary sandbox.
