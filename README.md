@@ -27,14 +27,40 @@ Every time you start the application, it launches into a brand-new, isolated env
 
 ## Extension Mode
 
-Bypass Browser supports loading standard WebExtensions from both Chrome and Firefox:
+Bypass Browser features an integrated **Extension Mode** supporting standard WebExtensions from both the Google Chrome and Mozilla Firefox ecosystems. Extensions run inside the isolated, ephemeral memory profile with zero disk permanence.
 
-1. **Toolbar Extension Menu:** Click the puzzle piece (`🧩`) on the toolbar to open the Extension Mode menu:
-   - **Load Unpacked Extension (Folder):** Select any directory containing a `manifest.json`.
-   - **Install Extension (.crx / .xpi / .zip):** Select a downloaded Chrome `.crx` or Firefox `.xpi` file; the browser automatically extracts and loads it.
-   - **Open Extensions Folder:** Opens the local `extensions/` directory in Windows Explorer.
-   - **Installed Extensions:** View all active extensions in the current session.
-2. **Pre-loading Extensions:** Place unpacked extension folders into the `extensions/` folder next to `BypassBrowser.exe`. Any valid extension is automatically loaded whenever the browser launches.
+<p align="center">
+  <img src="assets/screenshots/extension_mode.png" alt="Bypass Browser Extension Mode" width="850">
+</p>
+
+### Extension Features & Usages Breakdown
+
+| Feature | Menu Action | Description & Usage |
+| :--- | :--- | :--- |
+| **Load Unpacked Extension** | `➕ Load Unpacked Extension (Folder)...` | **Usage:** Select any developer directory containing a valid `manifest.json`.<br>**Benefit:** Instant hot-loading for custom, unpacked, or developer extensions without needing complex flags. |
+| **Direct Package Installer** | `📦 Install Extension (.crx / .xpi / .zip)...` | **Usage:** Select a downloaded Chrome `.crx`, Firefox `.xpi`, or `.zip` extension archive.<br>**Benefit:** Automatically parses binary headers (`Cr24`), unpacks contents, verifies `manifest.json`, and activates the extension across all active tabs in real-time. |
+| **Quick Storage Access** | `📁 Open Extensions Folder` | **Usage:** Opens the local `extensions/` directory in Windows Explorer.<br>**Benefit:** Easily manage or drag-and-drop extension files. Any folder placed here is auto-loaded upon browser launch. |
+| **Session Active Inspector** | `📋 Installed Extensions (Count)` | **Usage:** Displays a clean modal listing all active extensions currently loaded in the RAM sandbox.<br>**Benefit:** Verify extension names, active paths, and runtime status at a glance. |
+
+### How to Install Extensions
+
+#### Method 1: Installing Chrome Extensions (`.crx` or Unpacked)
+1. Download the extension `.crx` file (e.g. from CRX Downloader) or unpack an existing Chrome extension.
+2. Click the puzzle icon (`🧩`) on the Bypass Browser toolbar.
+3. Choose **Install Extension (.crx / .xpi / .zip)** and select the file.
+4. Bypass Browser automatically extracts the package and activates it across all open and future tabs.
+
+#### Method 2: Installing Firefox Add-ons (`.xpi`)
+1. Download any Firefox add-on file (`.xpi`) from addons.mozilla.org.
+2. Click `🧩` on the toolbar &rarr; **Install Extension (.crx / .xpi / .zip)**.
+3. Select your `.xpi` file. The internal parser unpacks the ZIP structure and enables the extension.
+
+#### Method 3: Pre-loading Extensions (Auto-Start)
+1. Place any unpacked extension folder into the `extensions/` directory (located alongside `BypassBrowser.exe` or `browser.py`).
+2. When Bypass Browser launches, it automatically scans `extensions/` and activates all discovered extensions immediately.
+
+> [!NOTE]
+> All extensions operate strictly within the ephemeral RAM sandbox. Any data written by extensions (local storage, cache) is completely purged when you close the browser or click **Fresh Reset** (`Ctrl+Shift+Delete`).
 
 ---
 

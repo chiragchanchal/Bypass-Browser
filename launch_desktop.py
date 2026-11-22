@@ -55,6 +55,11 @@ def launch(target_exe=None):
         if "--exe" in sys.argv and os.path.exists(dist_exe):
             cmd = f'"{dist_exe}"'
             work_dir = os.path.dirname(dist_exe)
+        elif len(sys.argv) > 1 and sys.argv[1].endswith(".py") and os.path.exists(sys.argv[1]):
+            target_script = os.path.abspath(sys.argv[1])
+            python_exe = sys.executable
+            cmd = f'"{python_exe}" "{target_script}"'
+            work_dir = script_dir
         else:
             browser_py = os.path.join(script_dir, "browser.py")
             python_exe = sys.executable.replace("python.exe", "pythonw.exe")
