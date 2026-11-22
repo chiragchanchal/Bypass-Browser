@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bypass Browser — Clean Slate</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card-bg: #1a1d26;
+      --card-hover: #232733;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.25);
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --border: #2e3444;
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      user-select: none;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--success);
+      margin-bottom: 24px;
+    }
+
+    .badge .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .logo-title {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ffffff 0%, #60a5fa 50%, #3b82f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .tagline {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .search-box {
+      width: 100%;
+      position: relative;
+      margin-bottom: 32px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 16px 22px 16px 50px;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow), 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 18px;
+      pointer-events: none;
+    }
+
+    .shortcuts-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      width: 100%;
+      margin-bottom: 36px;
+    }
+
+    .shortcut-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 10px;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .shortcut-card:hover {
+      background: var(--card-hover);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .shortcut-icon {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .features-row {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      padding: 16px 20px;
+      background: rgba(26, 29, 38, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .feature-item svg {
+      width: 14px;
+      height: 14px;
+      color: var(--success);
+    }
+
+    .credits {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .credits a {
+      color: #93c5fd;
+      text-decoration: none;
+    }
+
+    .credits a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">
+      <span class="dot"></span>
+      100% Ephemeral &bull; Anti-Fingerprinting Active
+    </div>
+
+    <h1 class="logo-title">Bypass Browser</h1>
+    <p class="tagline">Zero persistence. Anti-fingerprinting. Pristine state on every launch.</p>
+
+    <form class="search-box" action="https://duckduckgo.com/" method="GET" id="searchForm">
+      <span class="search-icon">🔍</span>
+      <input 
+        type="text" 
+        name="q" 
+        class="search-input" 
+        placeholder="Search the web with DuckDuckGo or enter URL..." 
+        autocomplete="off" 
+        autofocus 
+        id="queryInput"
+      />
+    </form>
+
+    <div class="shortcuts-grid">
+      <a class="shortcut-card" href="https://duckduckgo.com">
+        <span class="shortcut-icon">🦆</span>
+        <span>DuckDuckGo</span>
+      </a>
+      <a class="shortcut-card" href="https://wikipedia.org">
+        <span class="shortcut-icon">🌐</span>
+        <span>Wikipedia</span>
+      </a>
+      <a class="shortcut-card" href="https://github.com">
+        <span class="shortcut-icon">🐙</span>
+        <span>GitHub</span>
+      </a>
+      <a class="shortcut-card" href="https://news.ycombinator.com">
+        <span class="shortcut-icon">⚡</span>
+        <span>Hacker News</span>
+      </a>
+    </div>
+
+    <div class="features-row">
+      <div class="feature-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Zero History Recorded</span>
+      </div>
+      <div class="feature-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Hardware & Canvas Randomization</span>
+      </div>
+      <div class="feature-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>RAM-Only Storage</span>
+      </div>
+    </div>
+
+    <div class="credits">
+      Bypass Browser &bull; Created by <strong>Chirag Chanchal</strong> &bull; Open Source (MIT)
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('searchForm');
+    const input = document.getElementById('queryInput');
+
+    form.addEventListener('submit', function(e) {
+      const val = input.value.trim();
+      if (!val) {
+        e.preventDefault();
+        return;
+      }
+      const urlPattern = /^(https?:\/\/|[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$)/i;
+      if (urlPattern.test(val)) {
+        e.preventDefault();
+        let target = val;
+        if (!target.startsWith('http://') && !target.startsWith('https://')) {
+          target = 'https://' + target;
+        }
+        window.location.href = target;
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      input.focus();
+    });
+  </script>
+</body>
+</html>

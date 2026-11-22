@@ -1,0 +1,4 @@
+# Fresh Browser Dependencies
+# Uses Microsoft Edge WebView2 (built into Windows 10 & 11) via pythonnet
+pywebview>=6.0.0
+pythonnet>=3.0.0
