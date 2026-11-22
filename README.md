@@ -1,6 +1,8 @@
 # Bypass Browser
 
-**Bypass Browser** is a minimalist, privacy-first web browser for Windows designed for complete session freshness and anti-fingerprinting protection.
+🌐 **Official Website:** [https://chiragchanchal.github.io/Bypass-Browser/](https://chiragchanchal.github.io/Bypass-Browser/)
+
+**Bypass Browser** is a minimalist, privacy-first web browser for Windows, macOS, and Linux designed for complete session freshness and anti-fingerprinting protection.
 
 Every time you start the application, it launches into a brand-new, isolated environment with randomized hardware signatures and zero persistent traces on disk.
 
