@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Bypass Browser — Anti-Fingerprint & Zero-Footprint Web Browser</title>
+  <meta name="description" content="Bypass Browser is a fast, minimalist, privacy-first desktop browser for Windows, macOS, and Linux. Zero disk persistence, randomized canvas & WebGL identities, and Chrome/Firefox Extension Mode in a lightweight 13 MB package.">
+  <meta name="keywords" content="Bypass Browser, anti-fingerprinting browser, private browser, zero footprint browser, incognito desktop browser, privacy browser, Chirag Chanchal, open source browser">
+  <link rel="canonical" href="https://chiragchanchal.github.io/Bypass-Browser/">
+  <meta name="author" content="Chirag Chanchal">
+  <meta name="theme-color" content="#090a10">
+  <meta name="color-scheme" content="dark">
+
+  <!-- Open Graph / Social Sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Bypass Browser">
+  <meta property="og:title" content="Bypass Browser — The zero-trace browser that resets every single time">
+  <meta property="og:description" content="Minimalist, anti-fingerprinting desktop browser for Windows, macOS, and Linux with ephemeral RAM-only sandboxing and Extension Mode.">
+  <meta property="og:url" content="https://chiragchanchal.github.io/Bypass-Browser/">
+  <meta property="og:image" content="https://chiragchanchal.github.io/Bypass-Browser/assets/screenshots/extension_mode.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Bypass Browser — Anti-Fingerprint Zero-Footprint Browser">
+  <meta name="twitter:description" content="Zero disk persistence, randomized canvas & WebGL identities, and Chrome/Firefox Extension Mode for Windows, macOS, and Linux.">
+  <meta name="twitter:image" content="https://chiragchanchal.github.io/Bypass-Browser/assets/screenshots/extension_mode.png">
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z'/></svg>">
+
+  <style>
+    :root {
+      --bg: #08090d;
+      --bg-surface: #0e111a;
+      --bg-card: #131722;
+      --bg-card-hover: #1a2030;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(59, 130, 246, 0.3);
+      --text: #f3f4f6;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.2);
+      --accent-green: #10b981;
+      --accent-green-glow: rgba(16, 185, 129, 0.2);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --max-width: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* Ambient Background Glow */
+    .bg-glow {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1000px;
+      height: 600px;
+      background: radial-gradient(circle at 50% 20%, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.05), transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Navigation Bar */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(8, 9, 13, 0.75);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+    }
+
+    .nav__inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav__brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .nav__logo-badge {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .nav__logo-badge svg {
+      width: 18px;
+      height: 18px;
+      fill: #ffffff;
+    }
+
+    .nav__links {
+      display: flex;
+      gap: 28px;
+    }
+
+    .nav__links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+
+    .nav__links a:hover {
+      color: #ffffff;
+    }
+
+    .nav__actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* GitHub Star Pill */
+    .gh-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 9999px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .gh-pill:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      background: var(--bg-card);
+    }
+
+    .gh-pill svg {
+      width: 15px;
+      height: 15px;
+      fill: currentColor;
+    }
+
+    .gh-pill__count {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 6px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.92rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn--primary {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .btn--primary:hover {
+      background: #1d4ed8;
+      box-shadow: 0 6px 24px rgba(37, 99, 235, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn--secondary {
+      background: var(--bg-surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn--secondary:hover {
+      background: var(--bg-card);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+
+    .btn--lg {
+      padding: 14px 28px;
+      font-size: 1.02rem;
+      border-radius: 10px;
+    }
+
+    /* Hero Section */
+    .hero {
+      position: relative;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 72px 24px 60px;
+      text-align: center;
+      z-index: 1;
+    }
+
+    .hero__chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      color: #93c5fd;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+      margin-bottom: 24px;
+      transition: all 0.2s ease;
+    }
+
+    .hero__chip:hover {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    .hero__chip-dot {
+      width: 7px;
+      height: 7px;
+      background: #3b82f6;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #3b82f6;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .hero__title {
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+
+    .hero__title span {
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero__title .accent-text {
+      background: linear-gradient(135deg, #60a5fa 30%, #3b82f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero__sub {
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 auto 36px;
+      font-weight: 400;
+    }
+
+    .hero__cta-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+
+    .hero__cta-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .hero__os-pills {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+
+    .hero__os-pills a {
+      color: var(--text-muted);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .hero__os-pills a:hover {
+      color: #ffffff;
+    }
+
+    /* Hero Showcase Frame */
+    .hero__frame-wrap {
+      max-width: 1040px;
+      margin: 0 auto;
+      border-radius: 14px;
+      padding: 8px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02));
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(59, 130, 246, 0.12);
+    }
+
+    .hero__frame {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #000000;
+    }
+
+    .hero__frame img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Metrics Strip */
+    .metrics {
+      max-width: var(--max-width);
+      margin: 60px auto 40px;
+      padding: 0 24px;
+    }
+
+    .metrics__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 28px;
+    }
+
+    .metric-item {
+      text-align: center;
+    }
+
+    .metric-item__val {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      margin-bottom: 4px;
+      background: linear-gradient(135deg, #ffffff 40%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .metric-item__label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    /* Section Headers */
+    .section {
+      max-width: var(--max-width);
+      margin: 90px auto 0;
+      padding: 0 24px;
+    }
+
+    .section__header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 52px;
+    }
+
+    .section__badge {
+      display: inline-block;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      font-weight: 700;
+      color: #60a5fa;
+      margin-bottom: 12px;
+    }
+
+    .section__title {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .section__desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    /* Bento Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px 28px;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card:hover {
+      border-color: var(--border-accent);
+      background: var(--bg-card);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .feature-card__icon {
+      width: 44px;
+      height: 44px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      color: #60a5fa;
+    }
+
+    .feature-card__icon svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+    }
+
+    .feature-card__title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-card__text {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.55;
+    }
+
+    /* Platform Downloads Grid */
+    .platforms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 36px;
+    }
+
+    .platform-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      transition: all 0.25s ease;
+    }
+
+    .platform-card:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+      background: var(--bg-card);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .platform-card__icon {
+      width: 64px;
+      height: 64px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      color: #ffffff;
+    }
+
+    .platform-card__icon svg {
+      width: 32px;
+      height: 32px;
+      fill: currentColor;
+    }
+
+    .platform-card__name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .platform-card__spec {
+      color: var(--text-dim);
+      font-size: 0.88rem;
+      margin-bottom: 22px;
+    }
+
+    .platform-card .btn {
+      width: 100%;
+      margin-top: auto;
+    }
+
+    .platform-card__sub {
+      margin-top: 12px;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+
+    /* Terminal / CLI Box */
+    .cli-box {
+      background: #000000;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-top: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.92rem;
+      overflow-x: auto;
+    }
+
+    .cli-box code {
+      color: #60a5fa;
+      user-select: all;
+    }
+
+    .cli-box button {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .cli-box button:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+    }
+
+    /* FAQ Accordion */
+    .faq-list {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .faq-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    .faq-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .faq-question {
+      padding: 20px 24px;
+      font-weight: 600;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .faq-question svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: var(--text-muted);
+      stroke-width: 2.5;
+      transition: transform 0.25s ease;
+    }
+
+    .faq-item.active .faq-question svg {
+      transform: rotate(180deg);
+      stroke: #60a5fa;
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+      padding: 0 24px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .faq-item.active .faq-answer {
+      max-height: 300px;
+      padding: 0 24px 20px;
+    }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--border);
+      background: var(--bg-surface);
+      margin-top: 100px;
+      padding: 48px 24px 40px;
+      text-align: center;
+    }
+
+    .footer__inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .footer__credits {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+    }
+
+    .footer__credits strong {
+      color: #ffffff;
+    }
+
+    .footer__links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer__links a {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .footer__links a:hover {
+      color: #ffffff;
+    }
+
+    @media (max-width: 768px) {
+      .nav__links {
+        display: none;
+      }
+      .hero {
+        padding: 48px 16px 40px;
+      }
+      .metrics__grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Glow -->
+  <div class="bg-glow"></div>
+
+  <!-- Header / Navigation -->
+  <header class="nav">
+    <div class="nav__inner">
+      <a class="nav__brand" href="#top">
+        <div class="nav__logo-badge">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <span>Bypass Browser</span>
+      </a>
+
+      <nav class="nav__links">
+        <a href="#features">Features</a>
+        <a href="#extensions">Extension Mode</a>
+        <a href="#security">Security</a>
+        <a href="#download">Downloads</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+
+      <div class="nav__actions">
+        <a class="gh-pill" href="https://github.com/chiragchanchal/Bypass-Browser" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span>Star</span>
+          <span class="gh-pill__count" id="starCount">★</span>
+        </a>
+        <a class="btn btn--primary" href="#download">Download</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- Hero Section -->
+    <section class="hero">
+      <a class="hero__chip" href="https://github.com/chiragchanchal/Bypass-Browser/releases/tag/v1.2.0" target="_blank" rel="noopener">
+        <span class="hero__chip-dot"></span>
+        <span>v1.2.0 Cross-Platform Release is Live</span>
+        <span style="opacity: 0.5;">·</span>
+        <span style="text-decoration: underline;">See Release Notes →</span>
+      </a>
+
+      <h1 class="hero__title">
+        <span>The zero-trace browser that</span><br>
+        <span class="accent-text">resets every single time.</span>
+      </h1>
+
+      <p class="hero__sub">
+        Bypass Browser is a minimalist, privacy-first desktop browser for Windows, macOS, and Linux. Built with randomized hardware signatures, ephemeral RAM-only sandboxing, and full Chrome & Firefox Extension Mode.
+      </p>
+
+      <div class="hero__cta-group">
+        <div class="hero__cta-buttons">
+          <a class="btn btn--primary btn--lg" id="smartDownloadBtn" href="#download">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+            <span id="smartDownloadText">Download Bypass Browser</span>
+          </a>
+          <a class="btn btn--secondary btn--lg" href="https://github.com/chiragchanchal/Bypass-Browser" target="_blank" rel="noopener">
+            <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            <span>View Source on GitHub</span>
+          </a>
+        </div>
+
+        <div class="hero__os-pills">
+          <span>Available on:</span>
+          <a href="#download-windows">Windows</a> ·
+          <a href="#download-macos">macOS</a> ·
+          <a href="#download-linux">Linux</a> ·
+          <a href="https://github.com/chiragchanchal/Bypass-Browser" target="_blank">Python Source</a>
+        </div>
+      </div>
+
+      <!-- App Screenshot Frame -->
+      <div class="hero__frame-wrap">
+        <div class="hero__frame">
+          <img src="assets/screenshots/extension_mode.png" alt="Bypass Browser running on desktop showing Extension Mode and privacy controls" width="1226" height="812" loading="eager">
+        </div>
+      </div>
+    </section>
+
+    <!-- Metrics Banner -->
+    <section class="metrics">
+      <div class="metrics__grid">
+        <div class="metric-item">
+          <div class="metric-item__val">0 KB</div>
+          <div class="metric-item__label">Residual Traces on Disk</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-item__val">100%</div>
+          <div class="metric-item__label">Ephemeral InPrivate RAM</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-item__val">&lt; 14 MB</div>
+          <div class="metric-item__label">Lightweight Standalone Package</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-item__val">3 OSs</div>
+          <div class="metric-item__label">Windows, macOS & Linux</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section" id="features">
+      <div class="section__header">
+        <span class="section__badge">Features</span>
+        <h2 class="section__title">Built for total session isolation.</h2>
+        <p class="section__desc">Traditional browsers remember everything. Bypass Browser starts pristine, leaves zero traces on disk, and disguises your device fingerprint.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3 class="feature-card__title">Zero Disk Footprint</h3>
+          <p class="feature-card__text">Every browsing session lives in an isolated RAM sandbox. When you close the window or hit Fresh Reset, cookies, cache, storage, and history are wiped immediately with exponential-backoff retries.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <h3 class="feature-card__title">Anti-Fingerprint Stealth Shield</h3>
+          <p class="feature-card__text">Injected stealth script introduces imperceptible 1-pixel shifts to HTML5 Canvas rendering, randomizes WebGL vendor and renderer strings, and spoofs CPU hardware concurrency to defeat device fingerprinters.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          </div>
+          <h3 class="feature-card__title">1-Click Clean Slate Reset</h3>
+          <p class="feature-card__text">Press <kbd>Ctrl+Shift+Delete</kbd> or click <code>🧹 Fresh Reset</code> to flush active memory, generate a completely new fingerprint identity salt, and reset immediately to a clean slate.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+          </div>
+          <h3 class="feature-card__title">Seamless Auto-Updates</h3>
+          <p class="feature-card__text">When updates are published on GitHub, installed instances across all devices automatically discover the update, stage it in the background, and seamlessly upgrade your browser on restart.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3 class="feature-card__title">Security-Audited Lockdown</h3>
+          <p class="feature-card__text">Strict omnibox URL sanitization blocks dangerous pseudo-protocols (<code>javascript:</code>, <code>data:</code>). Native host objects and web message bridges are disabled to protect your host OS.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          </div>
+          <h3 class="feature-card__title">Native Web Engines</h3>
+          <p class="feature-card__text">No massive 250 MB browser runtime bundles. Uses native Microsoft Edge WebView2 on Windows, Apple WebKit on macOS, and WebKit2GTK on Linux for instant launch times and low memory use.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Extension Mode Section -->
+    <section class="section" id="extensions">
+      <div class="section__header">
+        <span class="section__badge">Add-ons & Extensibility</span>
+        <h2 class="section__title">Chrome & Firefox Extension Mode</h2>
+        <p class="section__desc">Use your favorite ad-blockers, developer tools, and extensions without sacrificing RAM isolation.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          </div>
+          <h3 class="feature-card__title">Package Installer (.crx / .xpi / .zip)</h3>
+          <p class="feature-card__text">Select any downloaded Chrome <code>.crx</code> file or Firefox <code>.xpi</code> add-on archive. Bypass Browser automatically parses package headers, extracts contents, and injects the extension in real time.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <h3 class="feature-card__title">Load Unpacked Folders</h3>
+          <p class="feature-card__text">Select any custom folder containing a <code>manifest.json</code> to load your developer add-ons or unpacked extensions immediately with zero configuration.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3 class="feature-card__title">Ephemeral Extensions Sandbox</h3>
+          <p class="feature-card__text">Extensions run strictly within the ephemeral InPrivate memory sandbox. Any data or tokens created by extensions are discarded when you exit or reset the session.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download Section -->
+    <section class="section" id="download">
+      <div class="section__header">
+        <span class="section__badge">Get Bypass Browser</span>
+        <h2 class="section__title">Download for your platform</h2>
+        <p class="section__desc">Free, open source, and lightweight. Choose your operating system below to start browsing with zero footprint.</p>
+      </div>
+
+      <div class="platforms-grid">
+        <!-- Windows Card -->
+        <div class="platform-card" id="download-windows">
+          <div class="platform-card__icon">
+            <svg viewBox="0 0 24 24"><path d="M3 5.5 10.4 4.5v7H3zM11.4 4.36 21 3v8.5h-9.6zM3 12.5h7.4v7L3 18.5zM11.4 12.5H21V21l-9.6-1.36z"/></svg>
+          </div>
+          <h3 class="platform-card__name">Windows</h3>
+          <p class="platform-card__spec">Windows 10 & 11 · 64-bit · 13.7 MB</p>
+          <a class="btn btn--primary" href="https://github.com/chiragchanchal/Bypass-Browser/releases/download/v1.2.0/BypassBrowser-Windows-x64.zip">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+            <span>Download .zip (x64)</span>
+          </a>
+          <span class="platform-card__sub">Extract and run BypassBrowser.exe</span>
+        </div>
+
+        <!-- macOS Card -->
+        <div class="platform-card" id="download-macos">
+          <div class="platform-card__icon">
+            <svg viewBox="0 0 24 24"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.83-.81-3-.79-1.55.02-2.97.9-3.77 2.28-1.6 2.78-.41 6.9 1.15 9.16.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.01.61-2.66 1.37-.58.67-1.09 1.75-.96 2.79 1.02.08 2.05-.51 2.68-1.27z"/></svg>
+          </div>
+          <h3 class="platform-card__name">macOS</h3>
+          <p class="platform-card__spec">Apple Silicon & Intel · macOS 11+ · 34.9 MB</p>
+          <a class="btn btn--primary" href="https://github.com/chiragchanchal/Bypass-Browser/releases/download/v1.2.0/BypassBrowser-macOS-Universal.zip">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+            <span>Download .zip (Universal)</span>
+          </a>
+          <span class="platform-card__sub">Extract and run BypassBrowser.app</span>
+        </div>
+
+        <!-- Linux Card -->
+        <div class="platform-card" id="download-linux">
+          <div class="platform-card__icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2C9.5 2 7.5 4 7.5 6.5c0 1.2.5 2.3 1.3 3.1-.2.8-.8 2.4-.8 4.4 0 2.2 1.3 4 3 4.8-.4.6-.7 1.3-.7 2.2 0 1.7 1.3 3 3 3s3-1.3 3-3c0-.9-.3-1.6-.7-2.2 1.7-.8 3-2.6 3-4.8 0-2-.6-3.6-.8-4.4.8-.8 1.3-1.9 1.3-3.1C19.5 4 17.5 2 15 2h-3zm-1 3.5c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm4 0c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1z"/></svg>
+          </div>
+          <h3 class="platform-card__name">Linux</h3>
+          <p class="platform-card__spec">Ubuntu, Debian, Fedora, Arch · 45.3 MB</p>
+          <a class="btn btn--primary" href="https://github.com/chiragchanchal/Bypass-Browser/releases/download/v1.2.0/BypassBrowser-Linux-x86_64.tar.gz">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+            <span>Download .tar.gz (x86_64)</span>
+          </a>
+          <span class="platform-card__sub">Extract and execute ./BypassBrowser</span>
+        </div>
+      </div>
+
+      <!-- Quick Run from Source CLI -->
+      <div class="cli-box">
+        <code>git clone https://github.com/chiragchanchal/Bypass-Browser.git &amp;&amp; cd Bypass-Browser &amp;&amp; pip install -r requirements.txt &amp;&amp; python browser.py</code>
+        <button id="copyCliBtn" onclick="copyCli()">Copy</button>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="section" id="faq">
+      <div class="section__header">
+        <span class="section__badge">FAQ</span>
+        <h2 class="section__title">Frequently Asked Questions</h2>
+        <p class="section__desc">Everything you need to know about Bypass Browser and its security design.</p>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>How is Bypass Browser different from standard Incognito mode?</span>
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="faq-answer">
+            <p>Standard Incognito mode only prevents your history from being saved to your local disk, but it leaves your hardware fingerprint (Canvas hash, WebGL renderer, CPU core count, audio latency) completely exposed to trackers. Bypass Browser actively randomizes your Canvas pixel signatures, masks your GPU and concurrency values, and completely purges all in-memory caches upon closing.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Can I install Chrome or Firefox extensions?</span>
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="faq-answer">
+            <p>Yes! Click the 🧩 puzzle icon on the top toolbar to install extensions from Chrome <code>.crx</code> packages, Firefox <code>.xpi</code> archives, or unpacked developer directories containing a <code>manifest.json</code>. You can also drop unpacked folders directly into the <code>extensions/</code> directory for automatic launch.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>How do automatic updates work?</span>
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="faq-answer">
+            <p>On startup, a background worker queries GitHub for new version releases. When an update is detected, it is quietly downloaded in the background. A prompt appears allowing you to restart and update in 2 seconds, or apply the update seamlessly the next time you close the browser.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Are any files left behind on my computer after browsing?</span>
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="faq-answer">
+            <p>Zero. All temporary session storage is allocated in memory and a protected temporary folder that is wiped on exit using multi-pass retries. Even if the process is terminated abruptly, stale session wipers clean up lingering data on the next launch.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__credits">
+        <strong>Bypass Browser</strong> &bull; Created &amp; Maintained by <strong>Chirag Chanchal</strong> (<a href="mailto:chiragchanchal2345@gmail.com" style="color: #60a5fa; text-decoration: none;">chiragchanchal2345@gmail.com</a>)
+      </div>
+      <p style="color: var(--text-dim); font-size: 0.85rem;">Released under the open-source MIT License &bull; Free for personal and commercial use.</p>
+      <div class="footer__links">
+        <a href="https://github.com/chiragchanchal/Bypass-Browser" target="_blank">GitHub Repository</a>
+        <a href="https://github.com/chiragchanchal/Bypass-Browser/releases" target="_blank">All Releases</a>
+        <a href="https://github.com/chiragchanchal/Bypass-Browser/issues" target="_blank">Issue Tracker</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // 1. Detect User OS for Smart Primary Download Button
+    (function detectPlatform() {
+      const btn = document.getElementById('smartDownloadBtn');
+      const text = document.getElementById('smartDownloadText');
+      const ua = navigator.userAgent || '';
+
+      if (/Win/i.test(ua)) {
+        btn.href = 'https://github.com/chiragchanchal/Bypass-Browser/releases/download/v1.2.0/BypassBrowser-Windows-x64.zip';
+        text.innerText = 'Download for Windows (x64) · 13.7 MB';
+      } else if (/Mac/i.test(ua)) {
+        btn.href = 'https://github.com/chiragchanchal/Bypass-Browser/releases/download/v1.2.0/BypassBrowser-macOS-Universal.zip';
+        text.innerText = 'Download for macOS (Universal) · 34.9 MB';
+      } else if (/Linux/i.test(ua)) {
+        btn.href = 'https://github.com/chiragchanchal/Bypass-Browser/releases/download/v1.2.0/BypassBrowser-Linux-x86_64.tar.gz';
+        text.innerText = 'Download for Linux (x86_64) · 45.3 MB';
+      } else {
+        btn.href = '#download';
+        text.innerText = 'Download Bypass Browser (All OSs)';
+      }
+    })();
+
+    // 2. Fetch GitHub Stars dynamically
+    (function fetchStars() {
+      const starEl = document.getElementById('starCount');
+      fetch('https://api.github.com/repos/chiragchanchal/Bypass-Browser')
+        .then(res => res.json())
+        .then(data => {
+          if (data && typeof data.stargazers_count === 'number') {
+            starEl.innerText = data.stargazers_count;
+          }
+        })
+        .catch(() => {});
+    })();
+
+    // 3. FAQ Accordion Toggle
+    document.querySelectorAll('.faq-question').forEach(q => {
+      q.addEventListener('click', () => {
+        const item = q.parentElement;
+        const isActive = item.classList.contains('active');
+        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+        if (!isActive) {
+          item.classList.add('active');
+        }
+      });
+    });
+
+    // 4. Copy CLI Command
+    function copyCli() {
+      const code = 'git clone https://github.com/chiragchanchal/Bypass-Browser.git && cd Bypass-Browser && pip install -r requirements.txt && python browser.py';
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.getElementById('copyCliBtn');
+        btn.innerText = 'Copied!';
+        setTimeout(() => { btn.innerText = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
