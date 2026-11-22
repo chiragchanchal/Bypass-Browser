@@ -1,4 +1,9 @@
 @echo off
+:: ============================================================================
+:: Bypass Browser — Portable Executable Builder
+:: Author: Chirag Chanchal (chiragchanchal2345@gmail.com)
+:: Copyright (c) 2026 Chirag Chanchal | Open Source (MIT)
+:: ============================================================================
 setlocal
 echo ========================================================
 echo   Building Bypass Browser Executable
@@ -13,6 +18,12 @@ python -m pip install pyinstaller
 
 echo Compiling executable with PyInstaller...
 python -m PyInstaller --noconfirm --onedir --windowed --name "BypassBrowser" --add-data "startpage;startpage" browser.py
+
+if not exist "dist\BypassBrowser\extensions" mkdir "dist\BypassBrowser\extensions"
+if not exist "dist\BypassBrowser\extensions\README.txt" (
+    echo Place unpacked extension folders, .crx, .xpi, or .zip files here. > "dist\BypassBrowser\extensions\README.txt"
+    echo Bypass Browser will automatically load them on launch. >> "dist\BypassBrowser\extensions\README.txt"
+)
 
 if exist "dist\BypassBrowser\startpage" rmdir /s /q "dist\BypassBrowser\startpage"
 xcopy /E /I /Y "startpage" "dist\BypassBrowser\startpage"

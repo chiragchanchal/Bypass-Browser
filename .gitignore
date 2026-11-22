@@ -1,0 +1,16 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# PyInstaller temporary build artifacts
+build/
+*.spec
+
+# Intermediate compiled folder (portable release zip is tracked)
+dist/BypassBrowser/
+
+# Local environment / temporary files
+*.tmp
+*.log
+.vscode/
+.idea/

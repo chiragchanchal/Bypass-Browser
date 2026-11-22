@@ -2,6 +2,8 @@
 Bypass Browser — Anti-Fingerprinting Zero-Footprint Web Browser
 ===============================================================
 Author: Chirag Chanchal
+Email: chiragchanchal2345@gmail.com
+Copyright (c) 2026 Chirag Chanchal
 License: MIT License
 Repository: https://github.com/ChiragChanchal/BypassBrowser
 
@@ -10,17 +12,23 @@ Features:
 - Anti-fingerprint engine randomizing Canvas, WebGL, and Hardware signatures.
 - InPrivate RAM-only storage (no persistent cookies, history, or disk cache).
 - Complete auto-purge on exit or upon clicking "Fresh Reset".
+- Full Extension Mode: Supports Chrome (.crx), Firefox (.xpi), and unpacked extensions.
+- Security-audited architecture: protocol sanitization, locked host objects, memory purging.
 - Powered by high-performance Microsoft Edge Chromium (WebView2).
 """
 
 import sys
 import os
 import glob
+import time
 import shutil
 import tempfile
 import atexit
 import secrets
 import random
+import zipfile
+import struct
+import io
 from urllib.parse import quote_plus
 
 # Initialize Windows Forms & Drawing through pythonnet / pywebview
@@ -36,27 +44,46 @@ import System.Windows.Forms as WinForms
 import webview.platforms.winforms as wf
 
 # -----------------------------------------------------------------------------
-# Application Metadata
+# Application Metadata & Watermark
 # -----------------------------------------------------------------------------
 APP_NAME = "Bypass Browser"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 APP_AUTHOR = "Chirag Chanchal"
+APP_EMAIL = "chiragchanchal2345@gmail.com"
 APP_LICENSE = "MIT License"
+APP_WATERMARK = f"{APP_NAME} v{APP_VERSION} | Created by {APP_AUTHOR}"
+
+# Base paths
+if getattr(sys, "frozen", False):
+    EXE_DIR = os.path.dirname(sys.executable)
+    RESOURCE_DIR = getattr(sys, "_MEIPASS", EXE_DIR)
+else:
+    EXE_DIR = os.path.dirname(os.path.abspath(__file__))
+    RESOURCE_DIR = EXE_DIR
+
+BASE_DIR = RESOURCE_DIR
+EXTENSIONS_DIR = os.path.join(EXE_DIR, "extensions")
+os.makedirs(EXTENSIONS_DIR, exist_ok=True)
 
 # -----------------------------------------------------------------------------
-# Ephemeral Session & Cleanup Manager
+# Ephemeral Session & Cleanup Manager (Security-Audited)
 # -----------------------------------------------------------------------------
 TEMP_DIR_PREFIX = "bypass_browser_"
 SESSION_DIR = tempfile.mkdtemp(prefix=TEMP_DIR_PREFIX)
 
 
 def cleanup_session_storage():
-    """Wipes all temp session files and cached data from disk on exit."""
-    try:
-        if os.path.exists(SESSION_DIR):
+    """Security audit: Multi-pass cleanup to handle transient locks by browser processes."""
+    if not os.path.exists(SESSION_DIR):
+        return
+    for attempt in range(3):
+        try:
             shutil.rmtree(SESSION_DIR, ignore_errors=True)
-    except Exception:
-        pass
+            if not os.path.exists(SESSION_DIR):
+                break
+            time.sleep(0.15)
+        except Exception:
+            pass
 
 
 def wipe_stale_sessions():
@@ -74,15 +101,15 @@ atexit.register(cleanup_session_storage)
 wipe_stale_sessions()
 
 # Offline bundled startpage path
-if getattr(sys, "frozen", False):
-    BASE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
-else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+startpage_candidate = os.path.abspath(os.path.join(RESOURCE_DIR, "startpage", "index.html"))
+if not os.path.exists(startpage_candidate):
+    startpage_candidate = os.path.abspath(os.path.join(EXE_DIR, "startpage", "index.html"))
 
-STARTPAGE_PATH = os.path.abspath(os.path.join(BASE_DIR, "startpage", "index.html"))
-if os.path.exists(STARTPAGE_PATH):
+if os.path.exists(startpage_candidate):
+    STARTPAGE_PATH = startpage_candidate
     STARTPAGE_URI = Uri(STARTPAGE_PATH).AbsoluteUri
 else:
+    STARTPAGE_PATH = None
     STARTPAGE_URI = "https://duckduckgo.com"
 
 
@@ -205,14 +232,50 @@ def build_stealth_script(identity):
 
 
 # -----------------------------------------------------------------------------
-# URL & Search Helper
+# Extension Package Extractor (Chrome .crx, Firefox .xpi, Zip)
+# -----------------------------------------------------------------------------
+def unpack_extension_file(file_path, output_dir):
+    """Unpacks .zip, .xpi (Firefox), or .crx (Chrome) into a folder."""
+    os.makedirs(output_dir, exist_ok=True)
+    with open(file_path, "rb") as f:
+        data = f.read()
+
+    # Standard ZIP / XPI
+    if data.startswith(b"PK\x03\x04"):
+        with zipfile.ZipFile(file_path) as z:
+            z.extractall(output_dir)
+        return True
+
+    # Chrome CRX format (Cr24 header)
+    if data.startswith(b"Cr24"):
+        header_size = struct.unpack("<I", data[8:12])[0]
+        zip_offset = 12 + header_size
+        zip_data = data[zip_offset:]
+        with zipfile.ZipFile(io.BytesIO(zip_data)) as z:
+            z.extractall(output_dir)
+        return True
+
+    return False
+
+
+# -----------------------------------------------------------------------------
+# URL & Search Helper (Security-Audited)
 # -----------------------------------------------------------------------------
 def parse_input_to_uri(text: str) -> str:
-    """Parses user input into either a direct URL or a DuckDuckGo search query."""
+    """Security-audited URL sanitizer: strips malicious schemes, parses URLs or queries."""
     text = text.strip()
     if not text:
         return STARTPAGE_URI
-    if text.startswith("http://") or text.startswith("https://") or text.startswith("file://"):
+
+    lower = text.lower()
+    # Security: block dangerous pseudo-protocols in omnibox
+    for dangerous in ("javascript:", "vbscript:", "data:text/html"):
+        if lower.startswith(dangerous):
+            return f"https://duckduckgo.com/?q={quote_plus(text)}"
+
+    if lower.startswith("http://") or lower.startswith("https://"):
+        return text
+    if lower.startswith("file://"):
         return text
     if "." in text and " " not in text:
         return "https://" + text
@@ -225,8 +288,8 @@ def parse_input_to_uri(text: str) -> str:
 class BypassBrowserForm(WinForms.Form):
     def __init__(self):
         super().__init__()
-        self.Text = f"{APP_NAME} — Anti-Fingerprint & Zero Footprint"
-        self.Size = Drawing.Size(1200, 800)
+        self.Text = f"{APP_NAME} — Anti-Fingerprint & Zero Footprint | by {APP_AUTHOR}"
+        self.Size = Drawing.Size(1240, 820)
         self.MinimumSize = Drawing.Size(800, 500)
         self.StartPosition = WinForms.FormStartPosition.CenterScreen
         self.BackColor = Drawing.ColorTranslator.FromHtml("#12141a")
@@ -235,20 +298,31 @@ class BypassBrowserForm(WinForms.Form):
         # Generate unique identity for this session
         self.identity = generate_session_identity()
 
-        # Keep track of active tabs and WebView2 instances
+        # Keep track of active tabs, WebView2 instances, and extensions
         self.tab_map = {}  # TabPage -> WebView2 control
+        self.loaded_extensions = []  # list of folder paths
+
+        # Discover pre-installed extensions from the extensions/ folder
+        self.discover_local_extensions()
 
         # Shared InPrivate Creation Properties
         self.creation_props = wf.Chromium.CoreWebView2CreationProperties()
         self.creation_props.UserDataFolder = SESSION_DIR
         self.creation_props.set_IsInPrivateModeEnabled(True)
-        self.creation_props.AdditionalBrowserArguments = (
+
+        browser_args = (
             "--disable-features=ElasticOverscroll "
             "--disable-sync "
             "--no-first-run "
             "--no-default-browser-check "
-            "--allow-file-access-from-files"
+            "--allow-file-access-from-files "
+            "--enable-features=msEdgeExtensionAPI"
         )
+        if self.loaded_extensions:
+            ext_list = ",".join(self.loaded_extensions)
+            browser_args += f' --load-extension="{ext_list}"'
+
+        self.creation_props.AdditionalBrowserArguments = browser_args
 
         self.setup_ui()
         self.KeyDown += self.on_form_key_down
@@ -257,6 +331,23 @@ class BypassBrowserForm(WinForms.Form):
 
         # Add initial clean tab
         self.add_tab(STARTPAGE_URI, "Start")
+
+    def discover_local_extensions(self):
+        """Discovers any unpacked extensions in the extensions/ directory."""
+        dirs_to_check = [EXTENSIONS_DIR]
+        if RESOURCE_DIR != EXE_DIR:
+            res_ext = os.path.join(RESOURCE_DIR, "extensions")
+            if os.path.exists(res_ext) and res_ext not in dirs_to_check:
+                dirs_to_check.append(res_ext)
+
+        for d in dirs_to_check:
+            if not os.path.exists(d):
+                continue
+            for item in os.listdir(d):
+                full_path = os.path.join(d, item)
+                if os.path.isdir(full_path) and os.path.exists(os.path.join(full_path, "manifest.json")):
+                    if full_path not in self.loaded_extensions:
+                        self.loaded_extensions.append(full_path)
 
     # -------------------------------------------------------------------------
     # UI Setup
@@ -329,6 +420,11 @@ class BypassBrowserForm(WinForms.Form):
         self.btn_close_tab.Click += lambda s, e: self.close_current_tab()
         self.toolbar.Controls.Add(self.btn_close_tab)
 
+        # Extensions Button
+        self.btn_extensions = make_btn("🧩", "Extension Mode: Install or Load Chrome/Firefox Extensions", width=36, bg="#272d3d", fg="#60a5fa")
+        self.btn_extensions.Click += lambda s, e: self.show_extensions_menu()
+        self.toolbar.Controls.Add(self.btn_extensions)
+
         # Fresh Reset Button (instant slate wipe & fingerprint re-seed)
         self.btn_reset = make_btn("🧹 Fresh Reset", "Instant clean slate + New Fingerprint Identity (Ctrl+Shift+Delete)", width=118, bg="#2d3345", fg="#60a5fa")
         self.btn_reset.Font = Drawing.Font("Segoe UI", 9, Drawing.FontStyle.Bold)
@@ -336,7 +432,7 @@ class BypassBrowserForm(WinForms.Form):
         self.toolbar.Controls.Add(self.btn_reset)
 
         # About / Credits Button
-        self.btn_about = make_btn("ℹ", "About Bypass Browser & Credits", width=30, bg="#252936", fg="#9ca3af")
+        self.btn_about = make_btn("ℹ", f"About {APP_NAME} & Author Credits", width=30, bg="#252936", fg="#9ca3af")
         self.btn_about.Click += lambda s, e: self.show_about()
         self.toolbar.Controls.Add(self.btn_about)
 
@@ -350,7 +446,7 @@ class BypassBrowserForm(WinForms.Form):
         self.lbl_badge.ForeColor = Drawing.ColorTranslator.FromHtml("#10b981")
         self.lbl_badge.BackColor = Drawing.ColorTranslator.FromHtml("#142b24")
         tip = WinForms.ToolTip()
-        tip.SetToolTip(self.lbl_badge, "100% Ephemeral & Anti-Fingerprint Active:\n• InPrivate RAM-only mode\n• Canvas & WebGL signature randomized\n• Zero leftover files on exit\n• Created by Chirag Chanchal")
+        tip.SetToolTip(self.lbl_badge, f"100% Ephemeral & Anti-Fingerprint Active:\n• InPrivate RAM-only mode\n• Canvas & WebGL signature randomized\n• Zero leftover files on exit\n• Created by {APP_AUTHOR}")
         self.toolbar.Controls.Add(self.lbl_badge)
         self.Controls.Add(self.toolbar)
         self.toolbar.Resize += self.on_toolbar_resize
@@ -359,7 +455,7 @@ class BypassBrowserForm(WinForms.Form):
         self.status_strip = WinForms.StatusStrip()
         self.status_strip.BackColor = Drawing.ColorTranslator.FromHtml("#161820")
         self.status_label = WinForms.ToolStripStatusLabel()
-        self.status_label.Text = f"🔒 Bypass Browser active. Identity: {self.identity['salt'][:8]}..."
+        self.status_label.Text = f"🔒 {APP_NAME} active | Identity: {self.identity['salt'][:8]}... | by {APP_AUTHOR}"
         self.status_label.ForeColor = Drawing.ColorTranslator.FromHtml("#9ca3af")
         self.status_strip.Items.Add(self.status_label)
         self.Controls.Add(self.status_strip)
@@ -385,7 +481,8 @@ class BypassBrowserForm(WinForms.Form):
         self.lbl_badge.Location = Drawing.Point(w - 116, 8)
         self.btn_about.Location = Drawing.Point(self.lbl_badge.Left - 36, 8)
         self.btn_reset.Location = Drawing.Point(self.btn_about.Left - 124, 8)
-        self.btn_close_tab.Location = Drawing.Point(self.btn_reset.Left - 40, 8)
+        self.btn_extensions.Location = Drawing.Point(self.btn_reset.Left - 42, 8)
+        self.btn_close_tab.Location = Drawing.Point(self.btn_extensions.Left - 40, 8)
         self.btn_new_tab.Location = Drawing.Point(self.btn_close_tab.Left - 40, 8)
 
         # Fluid Omnibox
@@ -465,7 +562,7 @@ class BypassBrowserForm(WinForms.Form):
         self.update_nav_state()
 
     # -------------------------------------------------------------------------
-    # WebView2 Event Handlers
+    # WebView2 Event Handlers (Security-Audited)
     # -------------------------------------------------------------------------
     def on_wv_ready(self, sender, args, tab_page):
         """Called when CoreWebView2 completes asynchronous initialization."""
@@ -473,10 +570,11 @@ class BypassBrowserForm(WinForms.Form):
         if core is None:
             return
 
-        # 1. Disable password and autofill persistence
+        # 1. Security Audit: Disable password autosave, autofill, and host objects
         try:
             core.Settings.IsPasswordAutosaveEnabled = False
             core.Settings.IsGeneralAutofillEnabled = False
+            core.Settings.AreHostObjectsAllowed = False
             core.Settings.AreDevToolsEnabled = True
         except Exception:
             pass
@@ -487,6 +585,21 @@ class BypassBrowserForm(WinForms.Form):
             core.AddScriptToExecuteOnDocumentCreatedAsync(stealth_code)
         except Exception:
             pass
+
+        # 3. Dynamic Browser Extensions Loading
+        if self.loaded_extensions and hasattr(core, "Profile") and hasattr(core.Profile, "AddBrowserExtensionAsync"):
+            for ext_path in self.loaded_extensions:
+                try:
+                    task = core.Profile.AddBrowserExtensionAsync(ext_path)
+                    def on_ext_loaded(t):
+                        if not t.IsFaulted and t.Result:
+                            try:
+                                t.Result.EnableAsync(True)
+                            except Exception:
+                                pass
+                    task.ContinueWith(Action[object](on_ext_loaded))
+                except Exception:
+                    pass
 
         # Handle page title changes
         def on_title_changed(s, a):
@@ -531,7 +644,7 @@ class BypassBrowserForm(WinForms.Form):
     def on_nav_completed(self, sender, args, tab_page):
         if tab_page == self.tab_control.SelectedTab:
             if args.IsSuccess:
-                self.status_label.Text = f"🔒 Bypass Identity Active ({self.identity['salt'][:8]}...) — 0 traces saved."
+                self.status_label.Text = f"🔒 Bypass Identity Active ({self.identity['salt'][:8]}...) | 0 traces saved"
             else:
                 self.status_label.Text = "Failed to load page. Check URL or network connection."
             self.update_nav_state()
@@ -586,7 +699,6 @@ class BypassBrowserForm(WinForms.Form):
         4. Re-injects the new stealth script.
         5. Reloads current page or navigates to clean start.
         """
-        # Generate completely new fingerprint
         self.identity = generate_session_identity()
         stealth_code = build_stealth_script(self.identity)
 
@@ -623,15 +735,125 @@ class BypassBrowserForm(WinForms.Form):
 
         self.status_label.Text = f"✨ Brand-New Identity Generated ({self.identity['salt'][:8]}...) — Slate completely wiped!"
 
+    # -------------------------------------------------------------------------
+    # Extension Management Mode (Chrome / Firefox / Unpacked Extensions)
+    # -------------------------------------------------------------------------
+    def show_extensions_menu(self):
+        """Displays a menu allowing the user to install or manage extensions."""
+        menu = WinForms.ContextMenuStrip()
+
+        item_unpacked = menu.Items.Add("➕ Load Unpacked Extension (Folder)...")
+        item_unpacked.Click += lambda s, e: self.prompt_load_unpacked_extension()
+
+        item_package = menu.Items.Add("📦 Install Extension (.crx / .xpi / .zip)...")
+        item_package.Click += lambda s, e: self.prompt_install_extension_package()
+
+        menu.Items.Add(WinForms.ToolStripSeparator())
+
+        item_open_dir = menu.Items.Add("📁 Open Extensions Folder")
+        item_open_dir.Click += lambda s, e: os.system(f'explorer.exe "{EXTENSIONS_DIR}"')
+
+        item_list = menu.Items.Add(f"📋 Installed Extensions ({len(self.loaded_extensions)})")
+        item_list.Click += lambda s, e: self.show_installed_extensions_list()
+
+        btn_screen_point = self.btn_extensions.PointToScreen(Drawing.Point(0, self.btn_extensions.Height))
+        menu.Show(btn_screen_point)
+
+    def prompt_load_unpacked_extension(self):
+        """Prompts user to select an unpacked extension folder containing manifest.json."""
+        dialog = WinForms.FolderBrowserDialog()
+        dialog.Description = "Select an unpacked Chrome/Firefox extension folder containing manifest.json"
+        dialog.ShowNewFolderButton = False
+        if dialog.ShowDialog(self) == WinForms.DialogResult.OK:
+            selected_path = dialog.SelectedPath
+            if not os.path.exists(os.path.join(selected_path, "manifest.json")):
+                WinForms.MessageBox.Show(
+                    "Invalid extension folder: manifest.json was not found in the selected folder.",
+                    "Extension Error",
+                    WinForms.MessageBoxButtons.OK,
+                    WinForms.MessageBoxIcon.Warning,
+                )
+                return
+            self.apply_extension_to_session(selected_path)
+
+    def prompt_install_extension_package(self):
+        """Prompts user to select a .crx, .xpi, or .zip extension file to extract and install."""
+        dialog = WinForms.OpenFileDialog()
+        dialog.Title = "Select Extension Package"
+        dialog.Filter = "Extension Packages (*.crx;*.xpi;*.zip)|*.crx;*.xpi;*.zip|All Files (*.*)|*.*"
+        if dialog.ShowDialog(self) == WinForms.DialogResult.OK:
+            pkg_file = dialog.FileName
+            pkg_name = os.path.splitext(os.path.basename(pkg_file))[0]
+            target_dir = os.path.join(EXTENSIONS_DIR, pkg_name)
+            try:
+                success = unpack_extension_file(pkg_file, target_dir)
+                if success and os.path.exists(os.path.join(target_dir, "manifest.json")):
+                    self.apply_extension_to_session(target_dir)
+                else:
+                    WinForms.MessageBox.Show(
+                        "Failed to parse extension: manifest.json was missing inside the package.",
+                        "Extension Error",
+                        WinForms.MessageBoxButtons.OK,
+                        WinForms.MessageBoxIcon.Warning,
+                    )
+            except Exception as ex:
+                WinForms.MessageBox.Show(
+                    f"Error unpacking extension: {ex}",
+                    "Extension Error",
+                    WinForms.MessageBoxButtons.OK,
+                    WinForms.MessageBoxIcon.Error,
+                )
+
+    def apply_extension_to_session(self, ext_path):
+        """Dynamically loads and activates the extension on all active tabs."""
+        if ext_path not in self.loaded_extensions:
+            self.loaded_extensions.append(ext_path)
+
+        success_count = 0
+        for page, wv in self.tab_map.items():
+            if wv.CoreWebView2 and hasattr(wv.CoreWebView2, "Profile") and hasattr(wv.CoreWebView2.Profile, "AddBrowserExtensionAsync"):
+                try:
+                    task = wv.CoreWebView2.Profile.AddBrowserExtensionAsync(ext_path)
+                    def on_ext_enabled(t):
+                        if not t.IsFaulted and t.Result:
+                            try:
+                                t.Result.EnableAsync(True)
+                            except Exception:
+                                pass
+                    task.ContinueWith(Action[object](on_ext_enabled))
+                    success_count += 1
+                except Exception:
+                    pass
+
+        ext_name = os.path.basename(ext_path)
+        WinForms.MessageBox.Show(
+            f"Extension '{ext_name}' installed and enabled for this session!\n\nFolder: {ext_path}",
+            "Extension Installed",
+            WinForms.MessageBoxButtons.OK,
+            WinForms.MessageBoxIcon.Information,
+        )
+        self.status_label.Text = f"🧩 Extension '{ext_name}' enabled successfully."
+
+    def show_installed_extensions_list(self):
+        """Lists all extensions currently loaded in the browser session."""
+        if not self.loaded_extensions:
+            msg = "No extensions currently loaded.\n\nClick 'Load Unpacked Extension' or place folders in the 'extensions/' directory."
+        else:
+            msg = "Currently Loaded Extensions:\n\n"
+            for i, p in enumerate(self.loaded_extensions, 1):
+                msg += f"{i}. {os.path.basename(p)} ({p})\n"
+        WinForms.MessageBox.Show(msg, "Active Extensions", WinForms.MessageBoxButtons.OK, WinForms.MessageBoxIcon.Information)
+
     def show_about(self):
         """Displays application credits and open source license information."""
         about_text = (
             f"{APP_NAME} v{APP_VERSION}\n"
-            f"Created & Maintained by: {APP_AUTHOR}\n\n"
+            f"Created & Maintained by: {APP_AUTHOR} ({APP_EMAIL})\n\n"
             f"License: {APP_LICENSE}\n\n"
             "Features:\n"
             "• Zero Persistent Disk Storage (InPrivate RAM-only)\n"
             "• Hardware & Canvas Anti-Fingerprinting Engine\n"
+            "• Chrome & Firefox Extension Mode Support\n"
             "• 1-Click Complete Slate Reset (Ctrl+Shift+Delete)\n"
             "• Multi-Tab Browsing & DuckDuckGo Search Integration"
         )

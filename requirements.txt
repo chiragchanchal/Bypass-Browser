@@ -1,4 +1,5 @@
-# Fresh Browser Dependencies
+# Bypass Browser Dependencies
+# Author: Chirag Chanchal (chiragchanchal2345@gmail.com)
 # Uses Microsoft Edge WebView2 (built into Windows 10 & 11) via pythonnet
 pywebview>=6.0.0
 pythonnet>=3.0.0
