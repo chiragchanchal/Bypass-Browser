@@ -105,18 +105,37 @@ Every device running Bypass Browser worldwide will now auto-update on its next l
 
 ## Download & Installation
 
-### Option 1: Pre-built Binary
-1. Go to the [Releases](https://github.com/chiragchanchal/Bypass-Browser/releases) page.
-2. Download `BypassBrowser-Windows-x64.zip`.
-3. Extract the folder and double-click `BypassBrowser.exe` to run.
+### Option 1: Pre-built Binaries (Cross-Platform)
+
+Download the package for your operating system from the [Releases](https://github.com/chiragchanchal/Bypass-Browser/releases) page:
+
+- **🪟 Windows (10 / 11 x64):** Download `BypassBrowser-Windows-x64.zip`, extract, and double-click `BypassBrowser.exe`.
+- **🍏 macOS (Apple Silicon & Intel):** Download `BypassBrowser-macOS-Universal.zip`, extract, and launch `BypassBrowser.app`.
+- **🐧 Linux (Ubuntu, Debian, Fedora):** Download `BypassBrowser-Linux-x86_64.tar.gz`, extract, and run `./BypassBrowser`.
+
+---
 
 ### Option 2: Running from Source
-Ensure Python 3.10+ is installed on Windows:
+
+#### Windows:
 ```powershell
 pip install -r requirements.txt
 python browser.py
 ```
-Or double-click `BypassBrowser.vbs` for silent launch.
+Or double-click `BypassBrowser.vbs` for silent background launch.
+
+#### macOS:
+```bash
+pip install "pywebview[cocoa]>=5.0"
+python3 browser.py
+```
+
+#### Linux:
+```bash
+sudo apt-get install -y libwebkit2gtk-4.1-dev gir1.2-webkit2-4.1
+pip install "pywebview[gtk]>=5.0"
+python3 browser.py
+```
 
 ---
 

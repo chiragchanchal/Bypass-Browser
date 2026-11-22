@@ -33,19 +33,30 @@ import json
 import threading
 import subprocess
 import urllib.request
+import pathlib
 from urllib.parse import quote_plus
 
-# Initialize Windows Forms & Drawing through pythonnet / pywebview
-import clr
-clr.AddReference("System")
-clr.AddReference("System.Drawing")
-clr.AddReference("System.Windows.Forms")
+# Platform detection
+IS_WINDOWS = sys.platform.startswith("win")
+IS_MAC = sys.platform == "darwin"
+IS_LINUX = sys.platform.startswith("linux")
 
-from System import Action, Uri
-from System.Threading import Thread, ThreadStart, ApartmentState
-import System.Drawing as Drawing
-import System.Windows.Forms as WinForms
-import webview.platforms.winforms as wf
+if IS_WINDOWS:
+    # Initialize Windows Forms & Drawing through pythonnet / pywebview
+    import clr
+    clr.AddReference("System")
+    clr.AddReference("System.Drawing")
+    clr.AddReference("System.Windows.Forms")
+
+    from System import Action, Uri
+    from System.Threading import Thread, ThreadStart, ApartmentState
+    import System.Drawing as Drawing
+    import System.Windows.Forms as WinForms
+    import webview.platforms.winforms as wf
+else:
+    Action = Uri = None
+    Thread = ThreadStart = ApartmentState = None
+    Drawing = WinForms = wf = None
 
 # -----------------------------------------------------------------------------
 # Application Metadata & Watermark
@@ -111,7 +122,7 @@ if not os.path.exists(startpage_candidate):
 
 if os.path.exists(startpage_candidate):
     STARTPAGE_PATH = startpage_candidate
-    STARTPAGE_URI = Uri(STARTPAGE_PATH).AbsoluteUri
+    STARTPAGE_URI = pathlib.Path(STARTPAGE_PATH).as_uri()
 else:
     STARTPAGE_PATH = None
     STARTPAGE_URI = "https://duckduckgo.com"
@@ -414,7 +425,7 @@ del "%~f0"
 # -----------------------------------------------------------------------------
 # Main Browser Form (Window)
 # -----------------------------------------------------------------------------
-class BypassBrowserForm(WinForms.Form):
+class BypassBrowserForm(WinForms.Form if IS_WINDOWS else object):
     def __init__(self):
         super().__init__()
         self.Text = f"{APP_NAME} — Anti-Fingerprint & Zero Footprint | by {APP_AUTHOR}"
@@ -1190,26 +1201,75 @@ class BypassBrowserForm(WinForms.Form):
 FreshBrowserForm = BypassBrowserForm
 
 
+def run_unix_browser():
+    """Native cross-platform browser engine for macOS (Cocoa/WebKit) and Linux (WebKitGTK)."""
+    import webview
+
+    identity = generate_session_identity()
+    stealth_code = build_stealth_script(identity)
+    start_url = STARTPAGE_URI if STARTPAGE_PATH else "https://duckduckgo.com"
+
+    class UnixBrowserApi:
+        def reset_identity(self):
+            nonlocal identity, stealth_code
+            identity = generate_session_identity()
+            stealth_code = build_stealth_script(identity)
+            window.load_url(start_url)
+            return identity["salt"][:8]
+
+        def get_identity(self):
+            return identity
+
+    api = UnixBrowserApi()
+    window = webview.create_window(
+        title=f"{APP_NAME} — Anti-Fingerprint & Zero Footprint | by {APP_AUTHOR}",
+        url=start_url,
+        js_api=api,
+        width=1240,
+        height=820,
+        min_size=(800, 500),
+        background_color="#12141a",
+        private_mode=True,  # InPrivate RAM-only sandbox on macOS WebKit & Linux WebKitGTK
+    )
+
+    def on_loaded():
+        try:
+            window.evaluate_js(stealth_code)
+        except Exception:
+            pass
+
+    window.events.loaded += on_loaded
+
+    # Check for updates in background
+    threading.Thread(target=check_for_remote_update, daemon=True).start()
+
+    webview.start(private_mode=True)
+    cleanup_session_storage()
+
+
 # -----------------------------------------------------------------------------
 # Application Main
 # -----------------------------------------------------------------------------
 def main():
-    def start_gui():
-        WinForms.Application.EnableVisualStyles()
-        WinForms.Application.SetCompatibleTextRenderingDefault(False)
-        form = BypassBrowserForm()
-        WinForms.Application.Run(form)
+    if IS_WINDOWS:
+        def start_gui():
+            WinForms.Application.EnableVisualStyles()
+            WinForms.Application.SetCompatibleTextRenderingDefault(False)
+            form = BypassBrowserForm()
+            WinForms.Application.Run(form)
 
-    # WebView2 and WinForms REQUIRE Single-Threaded Apartment (STA) thread
-    gui_thread = Thread(ThreadStart(start_gui))
-    gui_thread.SetApartmentState(ApartmentState.STA)
-    gui_thread.Start()
+        # WebView2 and WinForms REQUIRE Single-Threaded Apartment (STA) thread
+        gui_thread = Thread(ThreadStart(start_gui))
+        gui_thread.SetApartmentState(ApartmentState.STA)
+        gui_thread.Start()
 
-    while gui_thread.IsAlive:
-        gui_thread.Join(500)
+        while gui_thread.IsAlive:
+            gui_thread.Join(500)
 
-    # Post-run cleanup sweep
-    cleanup_session_storage()
+        # Post-run cleanup sweep
+        cleanup_session_storage()
+    else:
+        run_unix_browser()
 
 
 if __name__ == "__main__":
