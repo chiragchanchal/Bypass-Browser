@@ -29,6 +29,10 @@ import random
 import zipfile
 import struct
 import io
+import json
+import threading
+import subprocess
+import urllib.request
 from urllib.parse import quote_plus
 
 # Initialize Windows Forms & Drawing through pythonnet / pywebview
@@ -283,6 +287,131 @@ def parse_input_to_uri(text: str) -> str:
 
 
 # -----------------------------------------------------------------------------
+# Auto-Update Engine (GitHub-Synchronized)
+# -----------------------------------------------------------------------------
+UPDATE_MANIFEST_URL = "https://raw.githubusercontent.com/chiragchanchal/Bypass-Browser/main/version.json"
+
+
+def parse_version_tuple(v_str):
+    """Converts a version string like '1.2.0' into an integer tuple for comparison."""
+    try:
+        clean = str(v_str).strip().lstrip("v")
+        parts = [int(p) for p in clean.split(".") if p.isdigit()]
+        return tuple(parts) if parts else (0, 0, 0)
+    except Exception:
+        return (0, 0, 0)
+
+
+def check_for_remote_update():
+    """Checks GitHub for an update. Returns (has_update, remote_ver, download_url, notes)."""
+    try:
+        req = urllib.request.Request(
+            UPDATE_MANIFEST_URL,
+            headers={"User-Agent": f"BypassBrowser/{APP_VERSION} ({APP_AUTHOR})"},
+        )
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode("utf-8"))
+                remote_ver = str(data.get("version", "")).strip()
+                dl_url = str(data.get("download_url", "")).strip()
+                notes = str(data.get("release_notes", "")).strip()
+                if parse_version_tuple(remote_ver) > parse_version_tuple(APP_VERSION):
+                    return True, remote_ver, dl_url, notes
+                return False, remote_ver, dl_url, notes
+    except Exception:
+        pass
+    return False, APP_VERSION, "", ""
+
+
+def stage_remote_update(download_url, remote_ver):
+    """Downloads the portable package zip and extracts to a clean staging directory."""
+    staging_dir = os.path.join(tempfile.gettempdir(), f"bypass_update_{remote_ver}")
+    if os.path.exists(staging_dir):
+        shutil.rmtree(staging_dir, ignore_errors=True)
+    os.makedirs(staging_dir, exist_ok=True)
+
+    zip_file = os.path.join(staging_dir, "package.zip")
+    req = urllib.request.Request(
+        download_url,
+        headers={"User-Agent": f"BypassBrowser/{APP_VERSION} ({APP_AUTHOR})"},
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp, open(zip_file, "wb") as f_out:
+        shutil.copyfileobj(resp, f_out)
+
+    with zipfile.ZipFile(zip_file, "r") as z:
+        z.extractall(staging_dir)
+
+    try:
+        os.remove(zip_file)
+    except Exception:
+        pass
+
+    # Check if files were extracted into a nested directory like 'BypassBrowser'
+    sub_candidate = os.path.join(staging_dir, "BypassBrowser")
+    if os.path.exists(sub_candidate) and os.path.isdir(sub_candidate):
+        return sub_candidate
+    return staging_dir
+
+
+def execute_updater_script(staging_path, is_restart=True):
+    """Generates and executes a detached Windows script to replace files and restart."""
+    current_pid = os.getpid()
+    target_install_dir = EXE_DIR
+
+    # If running from source in a git repository, pull directly
+    if not getattr(sys, "frozen", False) and os.path.exists(os.path.join(target_install_dir, ".git")):
+        try:
+            subprocess.run(["git", "pull", "origin", "main"], cwd=target_install_dir, check=True)
+            if is_restart:
+                python_exe = sys.executable.replace("python.exe", "pythonw.exe")
+                if not os.path.exists(python_exe):
+                    python_exe = sys.executable
+                subprocess.Popen([python_exe, os.path.join(target_install_dir, "browser.py")])
+            return True
+        except Exception:
+            pass
+
+    updater_bat = os.path.join(tempfile.gettempdir(), "apply_bypass_update.bat")
+    restart_block = ""
+    if is_restart:
+        restart_block = f"""
+cd /d "{target_install_dir}"
+if exist "BypassBrowser.exe" (
+    start "" "BypassBrowser.exe"
+) else (
+    start "" pythonw.exe browser.py
+)
+"""
+
+    bat_content = f"""@echo off
+setlocal
+:: ============================================================================
+:: Bypass Browser — Automatic Background Update Script
+:: Author: Chirag Chanchal (chiragchanchal2345@gmail.com)
+:: ============================================================================
+
+:wait_pid
+tasklist /fi "PID eq {current_pid}" | find "{current_pid}" >nul
+if not errorlevel 1 (
+    timeout /t 1 /nobreak >nul
+    goto wait_pid
+)
+
+timeout /t 1 /nobreak >nul
+xcopy /E /Y /I "{staging_path}\\*" "{target_install_dir}\\"
+rmdir /s /q "{staging_path}"
+{restart_block}
+del "%~f0"
+"""
+    with open(updater_bat, "w") as f:
+        f.write(bat_content)
+
+    CREATE_NO_WINDOW = 0x08000000
+    subprocess.Popen(["cmd.exe", "/c", updater_bat], creationflags=CREATE_NO_WINDOW, close_fds=True)
+    return True
+
+
+# -----------------------------------------------------------------------------
 # Main Browser Form (Window)
 # -----------------------------------------------------------------------------
 class BypassBrowserForm(WinForms.Form):
@@ -301,6 +430,8 @@ class BypassBrowserForm(WinForms.Form):
         # Keep track of active tabs, WebView2 instances, and extensions
         self.tab_map = {}  # TabPage -> WebView2 control
         self.loaded_extensions = []  # list of folder paths
+        self.pending_update = None
+        self.update_checked = False
 
         # Discover pre-installed extensions from the extensions/ folder
         self.discover_local_extensions()
@@ -849,20 +980,138 @@ class BypassBrowserForm(WinForms.Form):
         about_text = (
             f"{APP_NAME} v{APP_VERSION}\n"
             f"Created & Maintained by: {APP_AUTHOR} ({APP_EMAIL})\n\n"
-            f"License: {APP_LICENSE}\n\n"
+            f"License: {APP_LICENSE}\n"
+            f"Repository: https://github.com/chiragchanchal/Bypass-Browser\n\n"
             "Features:\n"
             "• Zero Persistent Disk Storage (InPrivate RAM-only)\n"
             "• Hardware & Canvas Anti-Fingerprinting Engine\n"
             "• Chrome & Firefox Extension Mode Support\n"
+            "• Automatic Background Updates Across All Devices\n"
             "• 1-Click Complete Slate Reset (Ctrl+Shift+Delete)\n"
-            "• Multi-Tab Browsing & DuckDuckGo Search Integration"
+            "• Multi-Tab Browsing & DuckDuckGo Search Integration\n\n"
+            "Would you like to check for updates now?"
         )
-        WinForms.MessageBox.Show(
+        res = WinForms.MessageBox.Show(
             about_text,
             f"About {APP_NAME}",
-            WinForms.MessageBoxButtons.OK,
+            WinForms.MessageBoxButtons.YesNo,
             WinForms.MessageBoxIcon.Information,
         )
+        if res == WinForms.DialogResult.Yes:
+            self.manual_check_for_updates()
+
+    # -------------------------------------------------------------------------
+    # Automatic Update System (GitHub-Synchronized)
+    # -------------------------------------------------------------------------
+    def background_update_worker(self):
+        """Silently checks for updates in the background after startup."""
+        time.sleep(2.5)  # brief delay to prioritize startpage rendering
+        try:
+            has_update, remote_ver, dl_url, notes = check_for_remote_update()
+            if has_update and dl_url:
+                if self.InvokeRequired:
+                    self.Invoke(Action(lambda: self.on_update_detected(remote_ver, dl_url, notes)))
+                else:
+                    self.on_update_detected(remote_ver, dl_url, notes)
+        except Exception:
+            pass
+
+    def on_update_detected(self, remote_ver, dl_url, notes):
+        """Triggered when a newer version is discovered on GitHub."""
+        self.status_label.Text = f"🚀 New update v{remote_ver} found! Downloading in background..."
+
+        def download_worker():
+            try:
+                staging_path = stage_remote_update(dl_url, remote_ver)
+                def notify_ready():
+                    self.on_update_ready(staging_path, remote_ver, notes)
+                if self.InvokeRequired:
+                    self.Invoke(Action(notify_ready))
+                else:
+                    notify_ready()
+            except Exception:
+                pass
+
+        threading.Thread(target=download_worker, daemon=True).start()
+
+    def on_update_ready(self, staging_path, remote_ver, notes):
+        """Triggered when the update package has finished downloading and extracting."""
+        self.pending_update = (staging_path, remote_ver)
+        self.status_label.Text = f"✨ Update v{remote_ver} downloaded! Click here to restart and apply."
+        self.status_label.ForeColor = Drawing.ColorTranslator.FromHtml("#60a5fa")
+        self.status_label.Cursor = WinForms.Cursors.Hand
+        self.status_label.Click += lambda s, e: self.prompt_apply_update()
+
+        msg = (
+            f"A new version of {APP_NAME} (v{remote_ver}) has been automatically downloaded and prepared!\n\n"
+            f"Release Notes:\n{notes}\n\n"
+            "Would you like to restart now to complete the update automatically?\n"
+            "(If you select 'No', the update will be applied seamlessly next time you close the browser.)"
+        )
+        res = WinForms.MessageBox.Show(
+            self,
+            msg,
+            f"Update Ready — {APP_NAME}",
+            WinForms.MessageBoxButtons.YesNo,
+            WinForms.MessageBoxIcon.Information,
+        )
+        if res == WinForms.DialogResult.Yes:
+            self.apply_update_now(staging_path)
+
+    def prompt_apply_update(self):
+        """Prompts user to apply the pending update if they click the status bar."""
+        if not self.pending_update:
+            return
+        staging_path, remote_ver = self.pending_update
+        res = WinForms.MessageBox.Show(
+            self,
+            f"Restart {APP_NAME} now to apply update v{remote_ver}?",
+            "Apply Update",
+            WinForms.MessageBoxButtons.YesNo,
+            WinForms.MessageBoxIcon.Question,
+        )
+        if res == WinForms.DialogResult.Yes:
+            self.apply_update_now(staging_path)
+
+    def apply_update_now(self, staging_path):
+        """Triggers the detached updater script and exits the browser process."""
+        execute_updater_script(staging_path, is_restart=True)
+        self.Close()
+
+    def manual_check_for_updates(self):
+        """Runs a manual update check triggered from the About dialog."""
+        self.status_label.Text = "Checking GitHub for updates..."
+        def worker():
+            try:
+                has_update, remote_ver, dl_url, notes = check_for_remote_update()
+                if has_update and dl_url:
+                    if self.InvokeRequired:
+                        self.Invoke(Action(lambda: self.on_update_detected(remote_ver, dl_url, notes)))
+                    else:
+                        self.on_update_detected(remote_ver, dl_url, notes)
+                else:
+                    def show_current():
+                        self.status_label.Text = f"{APP_NAME} v{APP_VERSION} is up to date."
+                        WinForms.MessageBox.Show(
+                            self,
+                            f"You are running the latest version of {APP_NAME} (v{APP_VERSION}).\n\nNo updates are needed.",
+                            "Up to Date",
+                            WinForms.MessageBoxButtons.OK,
+                            WinForms.MessageBoxIcon.Information,
+                        )
+                    if self.InvokeRequired:
+                        self.Invoke(Action(show_current))
+                    else:
+                        show_current()
+            except Exception as ex:
+                def show_err():
+                    WinForms.MessageBox.Show(self, f"Could not check for updates: {ex}", "Update Check", WinForms.MessageBoxButtons.OK, WinForms.MessageBoxIcon.Warning)
+                if self.InvokeRequired:
+                    self.Invoke(Action(show_err))
+                else:
+                    show_err()
+
+        threading.Thread(target=worker, daemon=True).start()
 
     # -------------------------------------------------------------------------
     # Keyboard Accelerators
@@ -910,6 +1159,11 @@ class BypassBrowserForm(WinForms.Form):
         except Exception:
             pass
 
+        # Trigger background automatic update check (once per launch)
+        if not self.update_checked:
+            self.update_checked = True
+            threading.Thread(target=self.background_update_worker, daemon=True).start()
+
     # -------------------------------------------------------------------------
     # Window Teardown & Permanent Wiping
     # -------------------------------------------------------------------------
@@ -922,6 +1176,14 @@ class BypassBrowserForm(WinForms.Form):
                 pass
         self.tab_map.clear()
         cleanup_session_storage()
+
+        # If an update was downloaded in the background, apply it silently upon exit
+        if self.pending_update:
+            try:
+                staging_path, remote_ver = self.pending_update
+                execute_updater_script(staging_path, is_restart=False)
+            except Exception:
+                pass
 
 
 # Backward compatibility alias

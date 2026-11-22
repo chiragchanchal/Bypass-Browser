@@ -18,6 +18,7 @@ Every time you start the application, it launches into a brand-new, isolated env
 
 - **Zero Disk Persistence:** Browsing history, cookies, and cache reside strictly in memory and are discarded upon exit.
 - **Anti-Fingerprint Engine:** Randomizes canvas hashes, WebGL vendor/renderer strings, and hardware concurrency values per session.
+- **Global Auto-Update Sync:** When you push updates to GitHub, every installed device automatically detects, downloads, and updates itself.
 - **Extension Mode (Chrome & Firefox):** Install or load extensions directly from unpacked directories, `.crx`, `.xpi`, or `.zip` archives.
 - **Security-Audited Architecture:** Strict URL scheme sanitization, disabled host bridging, and credential isolation.
 - **Instant Slate Reset:** Click `Fresh Reset` (or press `Ctrl+Shift+Delete`) to generate a new device identity and wipe all active session memory immediately.
@@ -73,6 +74,32 @@ The browser has undergone security hardening to ensure privacy and isolation:
 - **InPrivate Memory Sandbox:** All tabs operate in isolated memory sandboxes with ephemeral profiles. No cookies, browsing logs, or caches persist across runs.
 - **Credential Protection:** Autofill and password saving are disabled by default (`IsPasswordAutosaveEnabled = False`).
 - **Lock-Resilient Teardown:** The session cleaner uses multi-pass retry logic with exponential backoff to handle transient locks during process termination.
+
+---
+
+## Global Auto-Update System
+
+Bypass Browser includes an integrated, zero-configuration auto-updater synchronized with this GitHub repository. Whenever you publish an update, every installed device running Bypass Browser automatically updates itself.
+
+### How It Works Across User Devices:
+1. **Background Discovery:** 2.5 seconds after launch, a background daemon queries [`version.json`](version.json) on GitHub. This never delays the browser startup or page rendering.
+2. **Silent Staging:** If a higher version number is detected (`remote_version > current_version`), the new release package is quietly downloaded into a temporary staging sandbox.
+3. **Smart Update Application:**
+   - A friendly notification appears: *"Update vX.X.X downloaded! Restart now to apply?"*
+   - **Clicking 'Yes':** The browser instantly spawns a detached updater script, closes cleanly, replaces files on disk, and restarts as the updated version within 2 seconds.
+   - **Clicking 'No' / Later:** The update is held in staging and applied silently the next time the user closes the browser.
+4. **Git-Aware:** If running directly from source within a cloned Git repository, the updater automatically runs `git pull origin main` and reloads.
+
+### How to Push an Update to All Devices:
+As the repository maintainer, releasing an update across all client devices takes 3 simple steps:
+1. **Bump Version:** In `browser.py` set `APP_VERSION = "1.2.0"`. In `version.json` set `"version": "1.2.0"` and add your release notes.
+2. **Re-package Binary:** Double-click `build_exe.bat` to compile the new `dist/BypassBrowser-Windows-x64.zip`.
+3. **Push to GitHub:**
+   ```powershell
+   git commit -am "Release Bypass Browser v1.2.0"
+   git push
+   ```
+Every device running Bypass Browser worldwide will now auto-update on its next launch!
 
 ---
 
