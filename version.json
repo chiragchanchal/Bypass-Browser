@@ -1,8 +1,8 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "app_name": "Bypass Browser",
   "author": "Chirag Chanchal",
   "release_date": "2026-11-22",
-  "release_notes": "Added Extension Mode, security audit hardening, author watermarks, and automated updates.",
-  "download_url": "https://github.com/chiragchanchal/Bypass-Browser/releases/download/v1.1.0/BypassBrowser-Windows-x64.zip"
+  "release_notes": "Official Cross-Platform Release: Native support for Windows (x64), macOS (Apple Silicon & Intel), and Linux (x86_64). Features anti-fingerprinting stealth engine, Extension Mode, and zero-footprint InPrivate RAM sandbox.",
+  "download_url": "https://github.com/chiragchanchal/Bypass-Browser/releases/download/v1.2.0/BypassBrowser-Windows-x64.zip"
 }

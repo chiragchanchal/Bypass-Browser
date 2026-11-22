@@ -62,7 +62,7 @@ else:
 # Application Metadata & Watermark
 # -----------------------------------------------------------------------------
 APP_NAME = "Bypass Browser"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 APP_AUTHOR = "Chirag Chanchal"
 APP_EMAIL = "chiragchanchal2345@gmail.com"
 APP_LICENSE = "MIT License"
